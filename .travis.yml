@@ -1,0 +1,52 @@
+language: node_js
+
+# we need minimum version of node which is 8.
+node_js:
+  - "8"
+
+# distribution: it is used as the base image for the virtual machine
+# that is going to be created for us. trusty is the OS that virtual machine
+# will run on. It is a very specific version of linux.
+dist: trusty
+
+# services are like: databases, outside modules, or any software that we want
+# to successfully run our server to.
+services:
+  - mongodb
+  - redis-server
+
+# env is going to be an array of enviromental variables that we want to have
+# set anytime our application is ran on our CI server.
+# we want to run our express api at port 3000 when it enters the CI environment.
+# Because there react is just a build file which express api is serving.
+# This right here tells the server that: process.env.PORT = 3000;
+env:
+  - NODE_ENV=ci PORT=3000
+
+# cache is used to save the node modules after travis installs it the first time
+# this will help us to improve the process performance for the future builds.
+# The cache is not strictly necessary but it will dramatically speed up our process.
+cache:
+  directories:
+    - node_modules
+    - client/node_modules
+
+# this will list some of the commands that we want executed at the command line.
+install:
+  # installing all the server side packages
+  - npm install
+  - npm run build # for installing and building client folder
+# script is very similar to install. It is where we are going to actually start
+# up our server and then execute some number of tests.
+
+script:
+  # '&' tells the underlying OS to run 'npm run start' in a subshell (in the background)
+  # so that we can run other commands in the terminal or shell as well. One problem with
+  # this is that when the terminal/shell is closed or exited, our process will end.
+  # That is where the nohup command comes in. It doesn't let the command kill even if the
+  # terminal closes.
+  - nohup npm run start &
+  # If we start our test too soon after starting the server, the test might try to access
+  # the server and our server will not be ready. So, we provide a little bit of pause here.
+  - sleep 3 # 3 secs
+  - npm run test
